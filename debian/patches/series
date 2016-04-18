@@ -1,0 +1,5 @@
+kfreebsd-disable-test.patch
+spelling.patch
+no-sslv3.patch
+build-dev-package.patch
+add-lighttpd.pc-configure.patch
