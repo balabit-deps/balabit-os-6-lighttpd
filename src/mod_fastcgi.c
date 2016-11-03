@@ -2645,8 +2645,71 @@ static int fcgi_demux_response(server *srv, handler_ctx *hctx) {
 							dcls = data_response_init();
 						}
 						/* found */
-						http_chunk_append_file(srv, con, ds->value, 0, sce->st.st_size);
+
+						off_t send_start, send_len;
+						data_string *header_start, *header_end;
+						char *err;
+						int error;
+						/* handling start and end ranges, trying to act similarily to a client-based Range request */
+						error = 0;
+						header_start = (data_string *) array_get_element(con->response.headers, "X-LIGHTTPD-send-file-start");
+						header_end = (data_string *) array_get_element(con->response.headers, "X-LIGHTTPD-send-file-end");
+						send_start = 0;
+						send_len = sce->st.st_size;
+						if (header_start != NULL) {
+							off_t header_start_off_t = strtoll(header_start->value->ptr, &err, 10);
+							if (*err == '\0' && header_start_off_t >= 0 && header_start_off_t < sce->st.st_size)
+								send_start = header_start_off_t;
+							else {
+								log_error_write(srv, __FILE__, __LINE__, "so(b)",
+								"Unsatisfiable X-LIGHTTPD-send-file-start:",
+								header_start_off_t, ds->value);
+								error = 1;
+							}
+						}
+						if (header_end != NULL) {
+							err = NULL;
+							off_t header_end_off_t = (off_t) strtoll(header_end->value->ptr, &err, 10);
+							if (*err == '\0' && header_end_off_t < sce->st.st_size && header_end_off_t >= send_start)
+								send_len = header_end_off_t - send_start + 1;
+							else {
+								log_error_write(srv, __FILE__, __LINE__, "so(b)",
+								"Unsatisfiable X-LIGHTTPD-send-file-end:",
+								header_end_off_t, ds->value);
+								error = 1;
+							}
+						} else
+							send_len = sce->st.st_size - send_start;
+
+						if (!error) {
+							buffer *content_length_buf;
+							if ( NULL != array_get_element(con->response.headers, "X-LIGHTTPD-send-file-set-content-range") &&
+											(send_start > 0 || send_len < sce->st.st_size)) {
+								/* add Content-Range-header */
+								buffer *range_buf = buffer_init();
+								buffer_copy_string(range_buf, "bytes ");
+								buffer_append_off_t(range_buf, send_start);
+								buffer_append_string(range_buf, "-");
+								buffer_append_off_t(range_buf, send_start + send_len);
+								buffer_append_string(range_buf, "/");
+								buffer_append_off_t(range_buf, sce->st.st_size);
+								response_header_insert(srv, con, CONST_STR_LEN("Content-Range"), CONST_BUF_LEN(range_buf));
+								buffer_free(range_buf);
+								con->http_status = 206;
+							}
+							http_chunk_append_file(srv, con, ds->value, send_start, send_len);
+							content_length_buf = buffer_init();
+							buffer_append_off_t(content_length_buf, send_len);
+							response_header_overwrite(srv, con, CONST_STR_LEN("Content-Length"), CONST_BUF_LEN(content_length_buf));
+							response_header_overwrite(srv, con, CONST_STR_LEN("Connection"), CONST_STR_LEN("Keep-Alive"));
+							buffer_free(content_length_buf);
+						} else {
+							con->http_status = 416;
+							response_header_overwrite(srv, con, CONST_STR_LEN("Content-Length"), CONST_STR_LEN("0"));
+							response_header_overwrite(srv, con, CONST_STR_LEN("Connection"), CONST_STR_LEN("Keep-Alive"));
+						}
 						hctx->send_content_body = 0; /* ignore the content */
+
 						joblist_append(srv, con);
 
 						buffer_copy_string_len(dcls->key, "Content-Length", sizeof("Content-Length")-1);
@@ -2666,7 +2729,6 @@ static int fcgi_demux_response(server *srv, handler_ctx *hctx) {
 						break;
 					}
 				}
-
 
 				if (hctx->send_content_body && blen > 1) {
 					/* enable chunked-transfer-encoding */
