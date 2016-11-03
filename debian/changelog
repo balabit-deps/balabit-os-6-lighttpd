@@ -1,3 +1,9 @@
+lighttpd (1.4.35-4ubuntu2bb1) UNRELEASED; urgency=medium
+
+  * Balabit patched version
+
+ -- Balabit Platform Team <devnull@dev.null>  Thu, 03 Nov 2016 16:27:18 +0100
+
 lighttpd (1.4.35-4ubuntu2) xenial; urgency=medium
 
   * Rebuild for libmysqlclient20.
