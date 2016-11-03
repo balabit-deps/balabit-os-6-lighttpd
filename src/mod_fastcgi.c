@@ -2661,9 +2661,11 @@ static int fcgi_demux_response(server *srv, handler_ctx *hctx) {
 							if (*err == '\0' && header_start_off_t >= 0 && header_start_off_t < sce->st.st_size)
 								send_start = header_start_off_t;
 							else {
-								log_error_write(srv, __FILE__, __LINE__, "so(b)",
-								"Unsatisfiable X-LIGHTTPD-send-file-start:",
-								header_start_off_t, ds->value);
+								if (header_start_off_t > sce->st.st_size) {
+									log_error_write(srv, __FILE__, __LINE__, "so(b)",
+											"Unsatisfiable X-LIGHTTPD-send-file-start:",
+											header_start_off_t, ds->value);
+								}
 								error = 1;
 							}
 						}
