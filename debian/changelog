@@ -1,3 +1,12 @@
+lighttpd (1.4.35-4ubuntu2.1) xenial-security; urgency=medium
+
+  * SECURITY UPDATE: Fix vulnerability in HTTPoxy.
+    - debian/patches/CVE-2016-1000212.patch: Mitigation for HTTPoxy
+      vulnerability.
+    - CVE-2016-1000212
+
+ -- Paulo Flabiano Smorigo <pfsmorigo@canonical.com>  Thu, 31 Jan 2019 14:20:05 -0200
+
 lighttpd (1.4.35-4ubuntu2) xenial; urgency=medium
 
   * Rebuild for libmysqlclient20.
