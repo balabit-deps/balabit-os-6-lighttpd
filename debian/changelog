@@ -1,3 +1,9 @@
+lighttpd (1.4.35-4ubuntu2.1bb1) xenial; urgency=medium
+
+  * Balabit patched version
+
+ -- Balabit Platform Team <devnull@dev.null>  Sat, 02 Feb 2019 04:25:29 +0100
+
 lighttpd (1.4.35-4ubuntu2.1) xenial-security; urgency=medium
 
   * SECURITY UPDATE: Fix vulnerability in HTTPoxy.
