@@ -3,3 +3,4 @@ spelling.patch
 no-sslv3.patch
 build-dev-package.patch
 add-lighttpd.pc-configure.patch
+CVE-2016-1000212.patch
